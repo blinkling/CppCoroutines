@@ -14,6 +14,40 @@
 #include "Result.h"
 #include "TaskAwaiter.h"
 
+/*
+promise_type 是与协程相关联的一个关键部分，它定义了协程的行为。promise_type需要实现某些必需的成员函数，而其他的则是可选的。
+
+下面是promise_type可能需要的成员：
+
+必需的成员：
+- get_return_object():
+返回与此协程关联的外部对象（通常是由用户直接使用的对象，例如 task 或 generator）。它是协程开始执行后第一个被调用的成员函数。
+
+- initial_suspend():
+返回一个awaitable，指示协程启动后是否应立即暂停。例如，返回 std::suspend_always 会导致协程立即暂停，而返回 std::suspend_never 会导致协程立即开始执行。
+
+- final_suspend() noexcept:
+返回一个awaitable，指示协程结束后是否应暂停。这通常用于确保外部对象（如 task 或 generator）保持活跃状态，直到协程完全结束。
+
+- unhandled_exception():
+用于捕获协程内部的异常。通常，你会在这里存储异常，并在协程恢复执行时重新抛出。
+
+可选的成员：
+- return_void():
+用于void返回类型的协程。如果协程的返回类型是void，则必须实现此函数。
+
+- return_value(T value):
+用于非void返回类型的协程。如果你的协程计划返回某种类型（而不是void），则需要实现此函数。
+这里的value来自哪儿呢?? 来自调用co_return value; 这里提供的值会传入 return_value(T value)
+
+- yield_value(T value):
+对于生成器类型的协程，此函数允许协程"产生"值，而不是返回一个单一的值。
+
+- await_transform(T awaitable):
+允许你转换或修改协程中使用的co_await表达式的结果。这可以用于注入自定义行为或修改awaitable对象。
+*/
+
+
 template<typename ResultType>
 class Task;
 
@@ -55,6 +89,9 @@ struct TaskPromise {
     return result->get_or_throw();
   }
 
+  /*
+  存储回调：在任务尚未完成时（即result还没有值时），如果有代码尝试注册一个完成回调，这个回调就会被添加到completion_callbacks列表中。
+  */
   void on_completed(std::function<void(Result<ResultType>)> &&func) {
     std::unique_lock lock(completion_lock);
     if (result.has_value()) {

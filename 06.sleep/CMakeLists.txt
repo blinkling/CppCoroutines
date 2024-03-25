@@ -3,6 +3,5 @@ project(CppCoroutines-Tasks)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable("coroutine-task"
-        main.cpp
-        io_utils.cpp)
+file(GLOB basic_files "*.h" "*.hpp" "*.inl" "*.cpp" "*.c")
+add_executable("06.sleep" ${basic_files})
